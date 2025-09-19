@@ -26,14 +26,15 @@ For example:
 {
   "apiurl": "http://cache.ducktors.dev"
 }
-```
 
-Now, you need to configure two additional environment variables, `TURBO_TEAM` and `TURBO_TOKEN`, within your development machine or CI pipeline. There are three ways to do it:
+Now, you need to configure two additional environment variables, TURBO_TEAM and TURBO_TOKEN, within your development machine or CI pipeline. There are three ways to do it:
 
-1. Set/export `TURBO_TEAM=ducktors` and `TURBO_TOKEN=myGeneratedToken` as environment variables.
-2. Add `teamslug` and/or `token` to the `.turbo/config.json` file. __Note: Including the *token* here is a less secure way to do it if you plan to share or commit the config file. Prefer the TURBO_TOKEN environment variable whenever possible__. For example:
 
-    `.turbo/config.json`
+Set/export TURBO_TEAM=ducktors and TURBO_TOKEN=myGeneratedToken as environment variables.
+
+Add teamslug and/or token to the .turbo/config.json file. Note: Including the token here is a less secure way to do it if you plan to share or commit the config file. Prefer the TURBO_TOKEN environment variable whenever possible. For example:
+
+`.turbo/config.json`
 
     ```json
     {
@@ -56,10 +57,8 @@ For example:
   "lint": "turbo run lint",
   "format": "prettier --write \"**/*.{ts,tsx,md}\""
 //...
-```
 
 __Note: The token value must be the same as for your server's `TURBO_TOKEN` env var. See the [environment variables](https://ducktors.github.io/turborepo-remote-cache/environment-variables) section for more info.__
-
 
 ## Enable remote caching in Docker
 To enable remote caching in Docker, you must pass `TURBO_TEAM` inside Dockerfile as [build arg](https://docs.docker.com/build/guide/build-args/) and `TURBO_TOKEN` as [build secret](https://docs.docker.com/build/building/secrets/) if you have *not* included them within `.turbo/config.json` or added them as parameters within `package.json` (see *Config file* above).
@@ -80,7 +79,6 @@ RUN --mount=type=bind,source=.git,target=.git \
     --mount=type=secret,id=TURBO_TOKEN \
     TURBO_TOKEN=$(cat /run/secrets/TURBO_TOKEN) pnpm turbo build
 ```
-
 and build your image leveraging Remote Cache Server with this command:
 
 ```sh
@@ -104,3 +102,24 @@ You can also configure your development machine by setting the following environ
 | `TURBO_TOKEN` | string | Your secret key. This must be the same as the `TURBO_TOKEN` variable set on your turborepo-remote-cache server instance |
 
 **Note: these environment variables are used by the Turborepo CLI** on the development machine or CI pipelines. They are not used by the `turborepo-remote-cache` server.
+
+## Artifact Integrity and Authenticity Verification
+
+Turborepo can sign artifacts with a secret key before uploading them to the Remote Cache. This increases the security of your remote cache by having Turborepo verify the integrity and authenticity of artifacts when they are downloaded. Any artifacts that fail verification will be treated as a cache miss.
+
+To enable this feature, first update your turbo.json file to include the signature property:
+
+`turbo.json`
+```json
+{
+  "remoteCache": {
+    "signature": true
+  }
+}
+```
+
+Next, you need to provide a secret key as an environment variable to both your Turborepo client (in your CI/development environment) and the turborepo-remote-cache server.
+
+| Variable                        | Type   | Description |
+TURBO_REMOTE_CACHE_SIGNATURE_KEY  |	string |	A secret key used to sign and verify remote cache artifacts. Must be the same for the Turborepo client and the cache server.|
+```

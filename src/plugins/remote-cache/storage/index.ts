@@ -42,7 +42,14 @@ export interface StorageProvider {
     cb: (err: Error | null, exists?: boolean) => void,
   ) => void
   createReadStream: (artifactPath: string) => Readable
-  createWriteStream: (artifactPath: string) => Writable
+  createWriteStream: (
+    artifactPath: string,
+    metadata?: Record<string, string>,
+  ) => Writable
+  head?: (
+    key: string,
+    cb: (err: Error | null, metadata?: Record<string, string>) => void,
+  ) => void
 }
 
 function createStorageLocation<Provider extends STORAGE_PROVIDERS>(
@@ -133,6 +140,31 @@ export function createLocation<Provider extends STORAGE_PROVIDERS>(
     })
   }
 
+  async function headCachedArtifact(artifactId: string, team: string) {
+    return new Promise<Record<string, string> | undefined>(
+      (resolve, reject) => {
+        const artifactPath = join(team, artifactId)
+        if (!location.head) {
+          return location.exists(artifactPath, (err, exists) => {
+            if (err) return reject(err)
+            if (!exists)
+              return reject(
+                new Error(`Artifact ${artifactPath} doesn't exist.`),
+              )
+            resolve(undefined)
+          })
+        }
+
+        location.head(artifactPath, (err, metadata) => {
+          if (err) {
+            return reject(err)
+          }
+          resolve(metadata)
+        })
+      },
+    )
+  }
+
   async function existsCachedArtifact(artifactId: string, team: string) {
     return new Promise<void>((resolve, reject) => {
       const artifactPath = join(team, artifactId)
@@ -152,10 +184,14 @@ export function createLocation<Provider extends STORAGE_PROVIDERS>(
     artifactId: string,
     team: string,
     artifact: Readable,
+    signature?: string,
   ) {
+    const metadata = signature
+      ? { 'x-turborepo-signature': signature }
+      : undefined
     return pipeline(
       artifact,
-      location.createWriteStream(join(team, artifactId)),
+      location.createWriteStream(join(team, artifactId), metadata),
     )
   }
 
@@ -163,6 +199,7 @@ export function createLocation<Provider extends STORAGE_PROVIDERS>(
     getCachedArtifact,
     createCachedArtifact,
     existsCachedArtifact,
+    headCachedArtifact,
   }
 }
 
@@ -176,6 +213,9 @@ declare module 'fastify' {
       createCachedArtifact: ReturnType<
         typeof createLocation
       >['createCachedArtifact']
+      headCachedArtifact: ReturnType<
+        typeof createLocation
+      >['headCachedArtifact']
     }
   }
 }

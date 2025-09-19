@@ -34,10 +34,16 @@ export const putArtifact: RouteOptions<
     }
 
     try {
+      const signatureKey = this.config.TURBO_REMOTE_CACHE_SIGNATURE_KEY
+      const signatureHeader = req.headers['x-turborepo-signature'] as
+        | string
+        | undefined
+
       await this.location.createCachedArtifact(
         artifactId,
         team,
         Readable.from(req.body),
+        signatureKey ? signatureHeader : undefined,
       )
 
       reply.send({ urls: [`${team}/${artifactId}`] })

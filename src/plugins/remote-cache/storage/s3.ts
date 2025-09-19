@@ -9,6 +9,17 @@ import {
 import { Upload } from '@aws-sdk/lib-storage'
 import { StorageProvider } from './index.js'
 
+export interface StorageProviderV2 extends StorageProvider {
+  head?: (
+    key: string,
+    cb: (err: Error | null, metadata?: Record<string, string>) => void,
+  ) => void
+  createWriteStream: (
+    key: string,
+    metadata?: Record<string, string>,
+  ) => Writable
+}
+
 export interface S3Options {
   accessKey?: string
   secretKey?: string
@@ -28,7 +39,7 @@ export function createS3({
   endpoint,
   maxSockets,
   s3OptionsPassthrough = {},
-}: S3Options): StorageProvider {
+}: S3Options): StorageProviderV2 {
   if (!bucket) {
     throw new Error(
       'S3 bucket is required; please set the STORAGE_PATH environment variable to the bucket name',
@@ -67,6 +78,19 @@ export function createS3({
         return cb(null, false)
       }
     },
+    head: async (key, cb) => {
+      try {
+        const result = await client.send(
+          new HeadObjectCommand({ Bucket: bucket, Key: key }),
+        )
+        return cb(null, result.Metadata)
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === 'NotFound') {
+          return cb(new Error('NotFound'))
+        }
+        return cb(error instanceof Error ? error : new Error(String(error)))
+      }
+    },
     createReadStream: (key: string) => {
       const passThrough = new PassThrough()
       client
@@ -86,11 +110,16 @@ export function createS3({
         .catch((err) => passThrough.destroy(err))
       return passThrough
     },
-    createWriteStream: (key: string) => {
+    createWriteStream: (key: string, metadata?: Record<string, string>) => {
       const passThrough = new PassThrough()
       const upload = new Upload({
         client,
-        params: { Bucket: bucket, Key: key, Body: passThrough },
+        params: {
+          Bucket: bucket,
+          Key: key,
+          Body: passThrough,
+          Metadata: metadata,
+        },
       })
 
       const uploadPromise = upload.done()

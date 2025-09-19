@@ -64,6 +64,9 @@ const schema = Type.Object(
     // SSL support
     SSL_KEY_PATH: Type.Optional(Type.String()),
     SSL_CERT_PATH: Type.Optional(Type.String()),
+
+    // Artifact signature
+    TURBO_REMOTE_CACHE_SIGNATURE_KEY: Type.Optional(Type.String()),
   },
   {
     additionalProperties: false,

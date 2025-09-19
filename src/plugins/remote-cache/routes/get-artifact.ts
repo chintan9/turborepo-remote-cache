@@ -33,6 +33,17 @@ export const getArtifact: RouteOptions<
     }
 
     try {
+      const signatureKey = this.config.TURBO_REMOTE_CACHE_SIGNATURE_KEY
+      if (signatureKey) {
+        const metadata = await this.location
+          .headCachedArtifact(artifactId, team)
+          .catch(() => undefined)
+        const signature = metadata?.['x-turborepo-signature']
+        if (signature) {
+          reply.header('x-turborepo-signature', signature)
+        }
+      }
+
       const artifact = await this.location.getCachedArtifact(artifactId, team)
       reply.header('Content-Type', 'application/octet-stream')
       return reply.send(artifact)

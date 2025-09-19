@@ -32,11 +32,14 @@ export const headArtifact: RouteOptions<
     }
 
     try {
-      const artifact = await this.location.existsCachedArtifact(
-        artifactId,
-        team,
-      )
-      reply.send(artifact)
+      const signatureKey = this.config.TURBO_REMOTE_CACHE_SIGNATURE_KEY
+      const metadata = await this.location.headCachedArtifact(artifactId, team)
+
+      if (signatureKey && metadata?.['x-turborepo-signature']) {
+        reply.header('x-turborepo-signature', metadata['x-turborepo-signature'])
+      }
+
+      reply.send()
     } catch (err) {
       throw notFound('Artifact not found', err)
     }
