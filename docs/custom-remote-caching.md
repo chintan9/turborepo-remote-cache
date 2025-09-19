@@ -26,15 +26,14 @@ For example:
 {
   "apiurl": "http://cache.ducktors.dev"
 }
+```
 
-Now, you need to configure two additional environment variables, TURBO_TEAM and TURBO_TOKEN, within your development machine or CI pipeline. There are three ways to do it:
+Now, you need to configure two additional environment variables, `TURBO_TEAM` and `TURBO_TOKEN`, within your development machine or CI pipeline. There are three ways to do it:
 
+1. Set/export `TURBO_TEAM=ducktors` and `TURBO_TOKEN=myGeneratedToken` as environment variables.
+2. Add `teamslug` and/or `token` to the `.turbo/config.json` file. __Note: Including the *token* here is a less secure way to do it if you plan to share or commit the config file. Prefer the TURBO_TOKEN environment variable whenever possible__. For example:
 
-Set/export TURBO_TEAM=ducktors and TURBO_TOKEN=myGeneratedToken as environment variables.
-
-Add teamslug and/or token to the .turbo/config.json file. Note: Including the token here is a less secure way to do it if you plan to share or commit the config file. Prefer the TURBO_TOKEN environment variable whenever possible. For example:
-
-`.turbo/config.json`
+    `.turbo/config.json`
 
     ```json
     {
@@ -57,8 +56,10 @@ For example:
   "lint": "turbo run lint",
   "format": "prettier --write \"**/*.{ts,tsx,md}\""
 //...
+```
 
 __Note: The token value must be the same as for your server's `TURBO_TOKEN` env var. See the [environment variables](https://ducktors.github.io/turborepo-remote-cache/environment-variables) section for more info.__
+
 
 ## Enable remote caching in Docker
 To enable remote caching in Docker, you must pass `TURBO_TEAM` inside Dockerfile as [build arg](https://docs.docker.com/build/guide/build-args/) and `TURBO_TOKEN` as [build secret](https://docs.docker.com/build/building/secrets/) if you have *not* included them within `.turbo/config.json` or added them as parameters within `package.json` (see *Config file* above).
@@ -79,6 +80,7 @@ RUN --mount=type=bind,source=.git,target=.git \
     --mount=type=secret,id=TURBO_TOKEN \
     TURBO_TOKEN=$(cat /run/secrets/TURBO_TOKEN) pnpm turbo build
 ```
+
 and build your image leveraging Remote Cache Server with this command:
 
 ```sh
